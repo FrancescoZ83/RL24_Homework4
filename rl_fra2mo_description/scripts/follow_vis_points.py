@@ -23,11 +23,22 @@ from ament_index_python.packages import get_package_share_directory
 import math
 
 
+waypoints = yaml.safe_load('''
+waypoints:
+  - position:
+      x: -3.4
+      y: -0.1
+      z: 0.0
+    orientation:
+      yaw: -1.57
+  - position:
+      x: -3.0
+      y: 4.5
+      z: 0.0
+    orientation:
+      yaw: -1.57
+''')
 
-def load_goals_from_yaml(file_path):
-    with open(file_path, 'r') as file:
-        data = yaml.safe_load(file)
-    return data["goals"]
 
 def main():
     rclpy.init()
@@ -51,11 +62,8 @@ def main():
         
         return pose
 
-    goals = load_goals_from_yaml(os.path.join(get_package_share_directory('rl_fra2mo_description'), "config", "goals_points.yaml"))
-
-    path_goals = [goals["goal_1"], goals["goal_2"], goals["goal_3"], goals["goal_4"], goals["goal_5"], goals["goal_6"], goals["goal_7"], goals["goal_8"]]
-
-    goal_poses = list(map(create_pose, path_goals))
+    
+    goal_poses = list(map(create_pose, waypoints["waypoints"]))
 
 
     # Wait for navigation to fully activate, since autostarting nav2

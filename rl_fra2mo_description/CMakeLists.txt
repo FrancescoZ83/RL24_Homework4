@@ -34,6 +34,7 @@ install(PROGRAMS
   scripts/reach_goal.py
   scripts/follow_waypoints.py
   scripts/follow_map_points.py
+  scripts/follow_vis_points.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

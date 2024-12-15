@@ -37,14 +37,6 @@ def main():
         pose = PoseStamped()
         pose.header.frame_id = 'map'
         pose.header.stamp = navigator.get_clock().now().to_msg()
-        #pose.pose.position.x = transform["position"]["x"]
-        #pose.pose.position.y = transform["position"]["y"]
-        #pose.pose.position.z = transform["position"]["z"]
-        #pose.pose.orientation.x = transform["orientation"]["x"]
-        #pose.pose.orientation.y = transform["orientation"]["y"]
-        #pose.pose.orientation.z = transform["orientation"]["z"]
-        #pose.pose.orientation.w = transform["orientation"]["w"]
-        
         xt = transform["position"]["x"] + 3
         yt = transform["position"]["y"] - 4.5
         yaw = transform["orientation"]["yaw"] + 1.57
