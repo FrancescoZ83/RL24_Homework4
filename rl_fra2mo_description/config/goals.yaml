@@ -1,0 +1,29 @@
+goals:
+    goal_1:
+     position:
+      x: 0.0
+      y: 3.0
+      z: 0.0
+     orientation: # yaw = 0 deg
+      yaw: 0.0
+    goal_2:
+     position:
+      x: 6.0
+      y: 4.0
+      z: 0.0
+     orientation: # yaw = 30 deg
+      yaw: 0.523599
+    goal_3:
+     position:
+      x: 6.5
+      y: -1.4
+      z: 0.0
+     orientation: # yaw = 180 deg
+      yaw: 3.14
+    goal_4:
+     position:
+      x: -1.6
+      y: -2.5
+      z: 0.0
+     orientation: # yaw = 75 deg
+      yaw: 1.309
