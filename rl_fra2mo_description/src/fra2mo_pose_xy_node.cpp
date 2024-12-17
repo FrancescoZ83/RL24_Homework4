@@ -10,6 +10,7 @@
 
 #include "cmath"
 #include "Eigen/Dense"
+#include "tf2_ros/static_transform_broadcaster.h"
 
 class Fra2moPoseXYNode : public rclcpp::Node
 {
@@ -34,7 +35,9 @@ public:
         timer_ = this->create_wall_timer(
             std::chrono::milliseconds(100),
             std::bind(&Fra2moPoseXYNode::publishXY, this));
-
+        
+        tf_static_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(this);
+       
         RCLCPP_INFO(this->get_logger(), "fra2mo_pose_xy_node initialized.");
     }
 
@@ -58,30 +61,19 @@ private:
         output[6] = rotation.w();
     } catch (const tf2::TransformException&) {}
 }
+    
+    std::array<double, 4> quaternionMultiply(const std::array<double, 4>& q1, const std::array<double, 4>& q2) {
+    double x1 = q1[0], y1 = q1[1], z1 = q1[2], w1 = q1[3];
+    double x2 = q2[0], y2 = q2[1], z2 = q2[2], w2 = q2[3];
 
-    Eigen::Matrix3d rotation_x(double roll) {
-    Eigen::Matrix3d R;
-    R << 1, 0, 0,
-         0, std::cos(roll), -std::sin(roll),
-         0, std::sin(roll), std::cos(roll);
-    return R;
-    }
+    return {
+        w1 * x2 + x1 * w2 + y1 * z2 - z1 * y2,
+        w1 * y2 - x1 * z2 + y1 * w2 + z1 * x2,
+        w1 * z2 + x1 * y2 - y1 * x2 + z1 * w2,
+        w1 * w2 - x1 * x2 - y1 * y2 - z1 * z2
+    };
+}
 
-    Eigen::Matrix3d rotation_y(double pitch) {
-    Eigen::Matrix3d R;
-    R << std::cos(pitch), 0, std::sin(pitch),
-         0, 1, 0,
-         -std::sin(pitch), 0, std::cos(pitch);
-    return R;
-    }
-
-    Eigen::Matrix3d rotation_z(double yaw) {
-    Eigen::Matrix3d R;
-    R << std::cos(yaw), -std::sin(yaw), 0,
-         std::sin(yaw), std::cos(yaw), 0,
-         0, 0, 1;
-    return R;
-    }
 
 
     void tfCallback(const tf2_msgs::msg::TFMessage::SharedPtr msg)
@@ -102,33 +94,24 @@ private:
         double qz = aruco_cam[5];
         double qw = aruco_cam[6];
         
-        
         std::array<double, 4> q = {qx, qy, qz, qw};
-        double yaw = -M_PI / 2;
-        /*std::array<double, 4> q_yaw = {0.0, 0.0, std::sin(yaw / 2), std::cos(yaw / 2)};
         
-        double qx_ar = q_yaw[3] * q[0] + q_yaw[0] * q[3] + q_yaw[1] * q[2] - q_yaw[2] * q[1];
-        double qy_ar = q_yaw[3] * q[1] - q_yaw[0] * q[2] + q_yaw[1] * q[3] + q_yaw[2] * q[0];
-        double qz_ar = q_yaw[3] * q[2] + q_yaw[0] * q[1] - q_yaw[1] * q[0] + q_yaw[2] * q[3];
-        double qw_ar = q_yaw[3] * q[3] - q_yaw[0] * q[0] - q_yaw[1] * q[1] - q_yaw[2] * q[2];
+        std::array<double, 4> q_rel = {0, 0, -0.707, 0.707}; //Adjustment Rotation of yaw = -pi/2
+        std::array<double, 4> q_result = quaternionMultiply(q_rel, q);
         
-        std::cout<<"aruco: " <<"x: " <<x_ar <<" y: " <<y_ar <<" z: " <<z_ar <<" q: [" <<qx_ar <<", " <<qy_ar <<", " <<qz_ar <<", " <<qw_ar<<"]\n";
-        */
-        double r = std::atan2(2*(qw*qx+qy*qz),1-2*(qx*qx+qy*qy));
-        double p = std::asin(2*(qw*qy-qz*qx));
-        double y = std::atan2(2*(qw*qz+qx*qy),1-2*(qy*qy+qz*qz));
+        qx=q_result[0];
+        qy=q_result[1];
+        qz=q_result[2];
+        qw=q_result[3];
         
-        //std::cout<<"RPY: " <<r <<"    " <<p <<"    " <<y <<"\n";
+        tf_vector_pub = {x_ar,y_ar,z_ar,qx,qy,qz,qw};
         
-        Eigen::Matrix3d R_fixed_to_world = rotation_z(yaw);
-        Eigen::Matrix3d R_point_in_fixed_frame = rotation_z(y) * rotation_y(p) * rotation_x(r);
-        Eigen::Matrix3d R_total = R_fixed_to_world * R_point_in_fixed_frame;
-
-        double roll = atan2(R_total(2, 1), R_total(2, 2));
-        double pitch = -asin(R_total(2, 0));
-        double yaww = atan2(R_total(1, 0), R_total(0, 0));
+        double dist=std::sqrt((x_ar-xpub)*(x_ar-xpub)+(y_ar-ypub)*(y_ar-ypub));
         
-        std::cout<<"RPY: " <<roll <<"    " <<pitch <<"    " <<yaww <<"\n";
+        if (tf_vector_pub[6] != 0 && flag==0 && dist<0.75){
+            this->make_transforms(tf_vector_pub);
+            flag = 1;
+        }
     }
 
     void publishXY()
@@ -138,16 +121,41 @@ private:
         xy_publisher_->publish(xy_msg);
         RCLCPP_INFO(this->get_logger(), "Published x: %.2f, y: %.2f", xpub, ypub);
     }
+    
+    void make_transforms(const std::array<double, 7> vec)
+    {
+        geometry_msgs::msg::TransformStamped t;
+
+        t.header.stamp = this->get_clock()->now();
+        t.header.frame_id = "world";
+        t.child_frame_id = "aruco_marker_frame";
+
+        t.transform.translation.x = vec[0];
+        t.transform.translation.y = vec[1];
+        t.transform.translation.z = vec[2];
+        t.transform.rotation.x = vec[3];
+        t.transform.rotation.y = vec[4];
+        t.transform.rotation.z = vec[5];
+        t.transform.rotation.w = vec[6];
+
+        tf_static_broadcaster_->sendTransform(t);
+    }
+
+
 
     rclcpp::Subscription<tf2_msgs::msg::TFMessage>::SharedPtr tf_subscriber_;
     rclcpp::Publisher<std_msgs::msg::Float64MultiArray>::SharedPtr xy_publisher_;
     rclcpp::TimerBase::SharedPtr timer_;
+    
+    std::shared_ptr<tf2_ros::StaticTransformBroadcaster> tf_static_broadcaster_;
+    bool flag=0;
     
     std::shared_ptr<tf2_ros::Buffer> tf_buffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
     std::shared_ptr<tf2_ros::TransformListener> tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
 
     std::array<double, 7> vector = {0,0,0,0,0,0,0};
     std::array<double, 7> aruco_cam;
+    std::array<double, 7> tf_vector_pub = {0,0,0,0,0,0,0};
     double xpub;
     double ypub;
 };

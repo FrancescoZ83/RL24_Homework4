@@ -1,49 +1,49 @@
 goals:
     goal_1:
      position:
+      x: 3.7
+      y: 0.0
+      z: 0.0
+     orientation:
+      yaw: 0.0
+    goal_2:
+     position:
       x: 6.5
       y: 4.5
       z: 0.0
      orientation:
       yaw: 0.0
-    goal_2:
+    goal_3:
      position:
       x: 9.4
       y: 4.5
       z: 0.0
      orientation:
       yaw: -1.57
-    goal_3:
+    goal_4:
      position:
       x: 9.4
       y: -4.6
       z: 0.0
      orientation:
       yaw: -3.14
-    goal_4:
+    goal_5:
      position:
       x: 0.0
       y: -4.6
       z: 0.0
      orientation:
       yaw: -3.14  
-    goal_5:
+    goal_6:
      position:
-      x: -8.8
+      x: -8.4
       y: -4.6
       z: 0.0
      orientation:
       yaw: 1.57
-    goal_6:
-     position:
-      x: -8.8
-      y: 0.0
-      z: 0.0
-     orientation:
-      yaw: 0.0
     goal_7:
      position:
-      x: 3.7
+      x: -8.8
       y: 0.0
       z: 0.0
      orientation:
