@@ -120,7 +120,7 @@ private:
         std_msgs::msg::Float64MultiArray xy_msg;
         xy_msg.data = {xpub, ypub};
         xy_publisher_->publish(xy_msg);
-        RCLCPP_INFO(this->get_logger(), "Published x: %.2f, y: %.2f", xpub, ypub);
+        RCLCPP_INFO(this->get_logger(), "fra2mo position x: %.2f, y: %.2f", xpub, ypub);
         
         // tf_static publisher
         if (tf_vector_pub[6] != 0 && flag==0){ // if tf_vector_pub[6] = qw is 0 (which is the starting value) it means that the pose hasn't been already detected
