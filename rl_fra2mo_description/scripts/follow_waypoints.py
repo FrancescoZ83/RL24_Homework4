@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 
 
-
+# function to open the yaml file
 def load_goals_from_yaml(file_path):
     with open(file_path, 'r') as file:
         data = yaml.safe_load(file)
@@ -33,6 +33,7 @@ def main():
     rclpy.init()
     navigator = BasicNavigator()
 
+    # function to retrieve the right poses in the robot initial position frame
     def create_pose(transform):
         pose = PoseStamped()
         pose.header.frame_id = 'map'
@@ -51,10 +52,13 @@ def main():
         
         return pose
 
+    # loading goals from file
     goals = load_goals_from_yaml(os.path.join(get_package_share_directory('rl_fra2mo_description'), "config", "goals.yaml"))
 
+    # choosing the desired order
     ordered_goals = [goals["goal_3"], goals["goal_4"], goals["goal_2"], goals["goal_1"]]
 
+    # compute the poses sequence
     goal_poses = list(map(create_pose, ordered_goals))
 
 
